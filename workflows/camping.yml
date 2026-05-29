@@ -1,0 +1,55 @@
+name: 캠핑존 토요일 빈자리 감시
+
+on:
+  schedule:
+    # 10분마다 실행 (UTC 기준이지만 '간격'이라 한국시간과 무관)
+    - cron: "*/10 * * * *"
+  workflow_dispatch:   # GitHub 화면에서 수동 실행 버튼
+
+permissions:
+  contents: read
+
+# 같은 작업이 겹쳐 돌지 않게
+concurrency:
+  group: camping-watch
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 파이썬 설치
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 이전 실행에서 이미 알림 보낸 날짜 기록을 불러와 중복 알림 방지
+      - name: 알림 기록 불러오기
+        uses: actions/cache/restore@v4
+        with:
+          path: camping_seen.json
+          key: camping-seen-${{ github.run_id }}
+          restore-keys: |
+            camping-seen-
+
+      - name: Playwright 설치
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: 빈자리 확인
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: python seoul_camping_watcher.py --once
+
+      # 갱신된 기록을 다음 실행을 위해 저장
+      - name: 알림 기록 저장
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: camping_seen.json
+          key: camping-seen-${{ github.run_id }}
