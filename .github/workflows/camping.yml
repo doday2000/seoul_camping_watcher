@@ -44,7 +44,7 @@ jobs:
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: python seoul_camping_watcher.py --once
+        run: python seoul_camping_watcher.py --once --debug
 
       # 갱신된 기록을 다음 실행을 위해 저장
       - name: 알림 기록 저장
